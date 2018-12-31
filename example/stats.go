@@ -14,8 +14,9 @@ func main() {
   streamer := gocsvstreamer.New()
   streamer.Url = url
   streamer.On(gocsvstreamer.EVENT_LINE, func(data interface{}) {
-    if _, ok := data.(gocsvstreamer.Line); ok {
+    if line, ok := data.(gocsvstreamer.Line); ok {
       if streamer.NumLinesProcessed%10000 == 0 {
+        fmt.Printf("%+v\n", line)
         fmt.Printf("processed %d lines\n", streamer.NumLinesProcessed)
       }
     }
