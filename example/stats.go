@@ -6,6 +6,7 @@ import (
   "strings"
 
   "github.com/ryanbennettvoid/gocsvstreamer"
+  "github.com/ryanbennettvoid/gocsvstreamer/events"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 
   streamer := gocsvstreamer.New()
   streamer.Url = url
-  streamer.On(gocsvstreamer.EVENT_LINE, func(data interface{}) {
+  streamer.On(events.LINE, func(data interface{}) {
     if line, ok := data.(gocsvstreamer.Line); ok {
 
       company := strings.ToLower(line.Data["Company"].(string))
@@ -31,21 +32,21 @@ func main() {
         wellsfargoCounter++
       }
 
-      if streamer.NumLinesProcessed%10000 == 0 {
+      if streamer.NumRowsProcessed%10000 == 0 {
         fmt.Printf("complaints found for Equifax: %d\n", equifaxCounter)
         fmt.Printf("complaints found for Wells Fargo: %d\n", wellsfargoCounter)
-        fmt.Printf("num lines processed: %d\n\n", streamer.NumLinesProcessed)
+        fmt.Printf("num lines processed: %d\n\n", streamer.NumRowsProcessed)
       }
 
-      if streamer.NumLinesProcessed >= maxLines {
+      if streamer.NumRowsProcessed >= maxLines {
         fmt.Printf("reached max number of lines (%d)\n", maxLines)
         cancel()
       }
 
     }
   })
-  err := streamer.Run(ctx)
-  if err != nil {
+
+  if err := streamer.Run(ctx); err != nil {
     panic(err)
   }
 

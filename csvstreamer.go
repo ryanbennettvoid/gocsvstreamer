@@ -5,14 +5,16 @@ import (
   "encoding/csv"
   "errors"
   "net/http"
+
+  "github.com/ryanbennettvoid/gocsvstreamer/events"
 )
 
 type CsvStreamer struct {
-  Url               string
-  Listeners         map[string][]Callback
-  Columns           []string
-  NumLinesProcessed int
-  Started           bool
+  Url              string
+  Listeners        map[string][]Callback
+  Columns          []string
+  NumRowsProcessed int
+  started          bool
 }
 
 func New() CsvStreamer {
@@ -38,9 +40,10 @@ func (streamer *CsvStreamer) Emit(eventName string, data interface{}) {
 }
 
 func (streamer *CsvStreamer) Run(ctx context.Context) error {
-  if streamer.Started {
+  if streamer.started {
     return errors.New("already started")
   }
+  streamer.started = true
   if len(streamer.Url) == 0 {
     return errors.New("url is missing")
   }
@@ -48,7 +51,7 @@ func (streamer *CsvStreamer) Run(ctx context.Context) error {
   if err != nil {
     return err
   }
-  streamer.NumLinesProcessed = 0
+  streamer.NumRowsProcessed = 0
   csvReader := csv.NewReader(res.Body)
   for {
     select {
@@ -57,22 +60,23 @@ func (streamer *CsvStreamer) Run(ctx context.Context) error {
     default:
       record, err := csvReader.Read()
       if err != nil {
+        if err.Error() == "EOF" {
+          streamer.Emit(events.EOF, nil)
+          return nil
+        }
         return err
       }
-      if streamer.NumLinesProcessed == 0 {
+      if streamer.Columns == nil {
         streamer.Columns = record
       } else {
-        if len(record) > len(streamer.Columns) {
-          return errors.New("row length greater than number of columns")
-        }
         line := NewLine()
         line.Columns = streamer.Columns
         for i, column := range streamer.Columns {
           line.Data[column] = record[i]
         }
-        streamer.Emit(EVENT_LINE, line)
+        streamer.NumRowsProcessed++
+        streamer.Emit(events.LINE, line)
       }
-      streamer.NumLinesProcessed++
     }
   }
   return nil

@@ -4,7 +4,7 @@
 ``` go
 streamer := gocsvstreamer.New()
 streamer.Url = "http://super-big-file.csv"
-streamer.On(gocsvstreamer.EVENT_LINE, func(data interface{}) {
+streamer.On(events.Line, func(data interface{}) {
   if line, ok := data.(gocsvstreamer.Line); ok {
     // do something with the line
   }
